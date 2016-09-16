@@ -1,0 +1,26 @@
+1. Take window size N
+2. Find the local Maxima(lmax) & Minima(lmin) in the window N
+3. Compare middle value M of the window N with the lmax & lmin
+    a. If M equals lmax and M.x equals lmax.x
+        i.  store M in listMax
+        ii. update lmax=M
+    b. Else if M equals lmin and M.x equals lmin.x
+        i.  store M in listMin
+        ii. update lmin=M
+4. Shift the window by the slide value SV
+5. Check whether lmax or lmin is out of window N due to shifting by SV
+    a. If True in case lmax; 
+       i.  Find lmax for the window N
+       ii. If lmin  greater than equal to newly added value V.
+           update lmin=V          
+    b. Else If True in case lmin; 
+       i.  Find lmin for the window N
+       ii. If lmax is less than equal to the newly added value V
+           update lmax=V
+    c. Else compare lmax & lmin with the newly added value in the window N after shifting by 1
+        i.  If lmax less than equal to the newly added value V
+            update lmax=V
+        ii. Else if lmin greater than equal to the newly added value V
+            update lmin=V
+6. Repeat Step 3
+
