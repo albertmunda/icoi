@@ -89,3 +89,20 @@ class LinkedList(object):
         return distance
 
 
+    '''def sline_elimination(self):
+        self.tmp=self.head
+
+        pnode=self.tmp
+        px=self.tmp.x
+        py=self.tmp.y
+        tmp=self.head.next_node
+        while tmp!=None:
+            if (tmp.x-px)==1 and pnode.y==tmp.y:
+                pnode.next_node=tmp.next_node
+            elif pnode.y!=tmp.y:
+                pnode=tmp
+            px=tmp.x
+            tmp=tmp.next_node'''
+
+
+
