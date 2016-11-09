@@ -10,8 +10,11 @@ from scipy.cluster.hierarchy import fcluster
 X=np.loadtxt("samples/sample02.rtf",dtype=np.int)
 
 
+Y=pdist(X,'euclidean')
+print(Y)
+print(Y.shape)
+#Z=linkage(Y,'centroid')
 Z=linkage(X,'centroid')
-#Z=linkage(X,'ward')
 #Y = pdist(values[100], 'euclidean')
 
 #print pdist(values)
@@ -30,7 +33,7 @@ plt.show()
 ####################################
 # calculate full dendrogram
 '''plt.figure(figsize=(25, 10))
-plt.title('Hierarchical Clustering Dendrogram')
+plt.title('Agglomerative Clustering Dendrogram')
 plt.xlabel('sample index')
 plt.ylabel('distance')
 dendrogram(
@@ -40,9 +43,9 @@ dendrogram(
 )
 plt.show()
 '''
-max_d = 20
-clusters = fcluster(Z, max_d, criterion='distance')
+max_d = 3
+#clusters = fcluster(Z, max_d, criterion='distance')
+clusters = fcluster(Z, max_d, criterion='maxclust')
 plt.figure(figsize=(10, 8))
 plt.scatter(X[:,0], X[:,1], c=clusters, cmap='prism')  # plot points with cluster dependent colors
 plt.show()
-

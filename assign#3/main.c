@@ -14,7 +14,6 @@ typedef struct cluster_node_s cluster_node_t;
 typedef struct neighbour_s neighbour_t;
 typedef struct item_s item_t;
 
-float (*distance_fptr)(float **, const int *, const int *, int, int);
 
 typedef struct coord_s {
         float x, y;
@@ -175,7 +174,7 @@ neighbour_t *add_neighbour(cluster_t *cluster, int index, int target)
 
 cluster_t *update_neighbours(cluster_t *cluster, int index)
 {
-        cluster_node_t *node = &(cluster->nodes[index]);
+        //cluster_node_t *node = &(cluster->nodes[index]);
         int root_clusters_seen = 1, target = index;
         while (root_clusters_seen < cluster->num_clusters) {
             cluster_node_t *temp = &(cluster->nodes[--target]);
@@ -232,7 +231,7 @@ void print_cluster_items(cluster_t *cluster, int index)
         static int count;
         sprintf(buffer,"cluster_%d",count);
         FILE*fptr=fopen(buffer,"w");
-        
+
         cluster_node_t *node = &(cluster->nodes[index]);
         fprintf(stdout, "Items: ");
         if (node->num_items > 0) {
@@ -247,7 +246,7 @@ void print_cluster_items(cluster_t *cluster, int index)
 }
 
 
-void merge_items(cluster_t *cluster, cluster_node_t *node,
+void merge_items(cluster_t *cluster,cluster_node_t *node,
                  cluster_node_t **to_merge)
 {
         node->type = A_MERGER;
