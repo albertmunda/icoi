@@ -383,12 +383,14 @@ int read_items_from_file(item_t **items, FILE *f)
 int process_input(item_t **items, const char *fname)
 {
         int count = 0;
-        FILE *f = fopen(fname, "r");
+        char filename[30];
+        sprintf(filename,"samples/sam0%s.rtf",fname);
+        FILE *f = fopen(filename, "r");
         if (f) {
                 count = read_items_from_file(items, f);
                 fclose(f);
         } else
-                fprintf(stderr, "Failed to open input file %s.\n", fname);
+                fprintf(stderr, "Failed to open input file %s.\n", filename);
         return count;
 }
 
