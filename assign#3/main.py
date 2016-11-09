@@ -7,17 +7,10 @@ import numpy as np
 from scipy.spatial.distance import pdist
 from scipy.cluster.hierarchy import fcluster
 
-X=np.loadtxt("samples/sample01.rtf",dtype=np.int)
+X=np.loadtxt("samples/sample02.rtf",dtype=np.int)
 
-#a = np.random.multivariate_normal([10, 0], [[3, 1], [1, 4]], size=[100,])
-#b = np.random.multivariate_normal([0, 20], [[3, 1], [1, 4]], size=[50,])
 
-#M=np.concatenate((a,b),)
-#print values.shape
-#plt.scatter(values[:,0],values[:,1])
-#plt.show()
-#result=values/np.linalg.norm(values,axis=-1)[:,np.newaxis]
-Z=linkage(X,'single')
+Z=linkage(X,'centroid')
 #Z=linkage(X,'ward')
 #Y = pdist(values[100], 'euclidean')
 
@@ -47,9 +40,8 @@ dendrogram(
 )
 plt.show()
 '''
-max_d = 5
+max_d = 20
 clusters = fcluster(Z, max_d, criterion='distance')
-print clusters
 plt.figure(figsize=(10, 8))
 plt.scatter(X[:,0], X[:,1], c=clusters, cmap='prism')  # plot points with cluster dependent colors
 plt.show()

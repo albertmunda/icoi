@@ -1,0 +1,7 @@
+1. Define a distance between clusters
+2. Initialize every datum or node as a cluster
+3. Iterate
+    a. Compute distances between all cluster
+    b. Merge two closest clusters
+4. Save both clustering and sequence of cluster operations
+5. Dendrogram
