@@ -1,7 +1,7 @@
-#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <float.h>
 
 #define NOT_USED  0 /* node is currently not used */
 #define LEAF_NODE 1 /* node contains a leaf node */
@@ -33,7 +33,6 @@ struct cluster_node_s {
         int is_root; /* true if cluster hasn't merged with another */
         int height; /* height of node from the bottom */
         coord_t centroid; /* centroid of this cluster */
-        char *label; /* label of a leaf node */
         int *merged; /* indexes of root clusters merged */
         int num_items; /* number of leaf nodes inside new cluster */
         int *items; /* array of leaf nodes indices inside merged clusters */
@@ -229,36 +228,24 @@ cluster_t *add_leaves(cluster_t *cluster, item_t *items)
 
 void print_cluster_items(cluster_t *cluster, int index)
 {
+        char buffer[20];
+        static int count;
+        sprintf(buffer,"cluster_%d",count);
+        FILE*fptr=fopen(buffer,"w");
+        
         cluster_node_t *node = &(cluster->nodes[index]);
         fprintf(stdout, "Items: ");
         if (node->num_items > 0) {
-                fprintf(stdout, "%f", cluster->nodes[node->items[0]].centroid.x);
+                fprintf(fptr, "%d %d\n", (int)cluster->nodes[node->items[0]].centroid.x,(int)cluster->nodes[node->items[0]].centroid.y);
                 for (int i = 1; i < node->num_items; ++i)
-                        fprintf(stdout, ", %f",
-                                cluster->nodes[node->items[i]].centroid.x);
+                        fprintf(fptr, "%d %d\n",
+                                (int)cluster->nodes[node->items[i]].centroid.x,(int)cluster->nodes[node->items[i]].centroid.y);
         }
         fprintf(stdout, "\n");
+        fclose(fptr);
+        count++;
 }
 
-void print_cluster_node(cluster_t *cluster, int index)
-{
-        cluster_node_t *node = &(cluster->nodes[index]);
-        fprintf(stdout, "Node %d - height: %d, centroid: (%5.3f, %5.3f)\n",
-                index, node->height, node->centroid.x, node->centroid.y);
-        if (node->label)
-                fprintf(stdout, "\tLeaf: %s\n\t", node->label);
-        else
-                fprintf(stdout, "\tMerged: %d, %d\n\t",
-                        node->merged[0], node->merged[1]);
-        print_cluster_items(cluster, index);
-        fprintf(stdout, "\tNeighbours: ");
-        neighbour_t *t = node->neighbours;
-        while (t) {
-                fprintf(stdout, "\n\t\t%2d: %5.3f", t->target, t->distance);
-                t = t->next;
-        }
-        fprintf(stdout, "\n");
-}
 
 void merge_items(cluster_t *cluster, cluster_node_t *node,
                  cluster_node_t **to_merge)
@@ -435,12 +422,6 @@ void get_k_clusters(cluster_t *cluster, int k)
         }
 }
 
-void print_cluster(cluster_t *cluster)
-{
-        for (int i = 0; i < cluster->num_nodes; ++i)
-                print_cluster_node(cluster, i);
-}
-
 int read_items(int count, item_t *items, FILE *f)
 {
         for (int i = 0; i < count; ++i) {
@@ -474,14 +455,12 @@ int process_input(item_t **items, const char *fname)
 
 int main(int argc, char **argv)
 {
-        if (argc != 4) {
-                fprintf(stderr, "Usage: %s <input file> <num clusters> "
-                        "<linkage type>\n", argv[0]);
+        if (argc != 3) {
+                fprintf(stderr, "Usage: %s <input file> <num clusters>\n", argv[0]);
                 exit(1);
         } else {
                 item_t *items = NULL;
                 int num_items = process_input(&items, argv[1]);
-                //set_linkage(argv[3][0]);
                 if (num_items) {
                         cluster_t *cluster = agglomerate(num_items, items);
                         free(items);
@@ -489,7 +468,6 @@ int main(int argc, char **argv)
                         if (cluster) {
                                 fprintf(stdout, "CLUSTER HIERARCHY\n"
                                         "--------------------\n");
-                                print_cluster(cluster);
 
                                 int k = atoi(argv[2]);
                                 fprintf(stdout, "\n\n%d CLUSTERS\n"
