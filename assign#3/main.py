@@ -7,14 +7,19 @@ import numpy as np
 from scipy.spatial.distance import pdist
 from scipy.cluster.hierarchy import fcluster
 
-X=np.loadtxt("samples/sample02.rtf",dtype=np.int)
+sample_number=raw_input("Enter sample number: ")
+max_clusters = input('Number of clusters to create: ')
+
+X=np.loadtxt("samples/sample0"+sample_number+".rtf",dtype=np.int)
 
 
 Y=pdist(X,'euclidean')
-print(Y)
-print(Y.shape)
-#Z=linkage(Y,'centroid')
-Z=linkage(X,'centroid')
+
+Z=linkage(Y,'centroid')
+
+for i,j,d,n in Z:
+    print "{%d - %d} merge_distance=%d clusters_merged=%d" %(i,j,d,n)
+#Z=linkage(X,'centroid')
 #Y = pdist(values[100], 'euclidean')
 
 #print pdist(values)
@@ -43,9 +48,8 @@ dendrogram(
 )
 plt.show()
 '''
-max_d = 3
-#clusters = fcluster(Z, max_d, criterion='distance')
-clusters = fcluster(Z, max_d, criterion='maxclust')
+
+clusters = fcluster(Z, max_clusters, criterion='maxclust')
 plt.figure(figsize=(10, 8))
 plt.scatter(X[:,0], X[:,1], c=clusters, cmap='prism')  # plot points with cluster dependent colors
 plt.show()

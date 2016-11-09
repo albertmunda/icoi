@@ -2,52 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
+#include "main.h"
 
-#define NOT_USED  0 /* node is currently not used */
-#define LEAF_NODE 1 /* node contains a leaf node */
-#define A_MERGER  2 /* node contains a merged pair of root clusters */
 #define alloc_mem(N, T) (T *) calloc(N, sizeof(T))
-#define invalid_node(I) fprintf(stderr, "Invalid cluster node at index %d.\n", I)
-#define alloc_fail(M) fprintf(stderr, "Failed to allocate memory for %s.\n", M)
-typedef struct cluster_s cluster_t;
-typedef struct cluster_node_s cluster_node_t;
-typedef struct neighbour_s neighbour_t;
-typedef struct item_s item_t;
-
-
-typedef struct coord_s {
-        float x, y;
-} coord_t;
-
-struct cluster_s {
-        int num_items; /* number of items that was clustered */
-        int num_clusters; /* current number of root clusters */
-        int num_nodes; /* number of leaf and merged clusters */
-        cluster_node_t *nodes; /* leaf and merged clusters */
-        float **distances; /* distance between leaves */
-};
-
-struct cluster_node_s {
-        int type; /* type of the cluster node */
-        int is_root; /* true if cluster hasn't merged with another */
-        int height; /* height of node from the bottom */
-        coord_t centroid; /* centroid of this cluster */
-        int *merged; /* indexes of root clusters merged */
-        int num_items; /* number of leaf nodes inside new cluster */
-        int *items; /* array of leaf nodes indices inside merged clusters */
-        neighbour_t *neighbours; /* sorted linked list of distances to roots */
-};
-
-struct neighbour_s {
-        int target; /* the index of cluster node representing neighbour */
-        float distance; /* distance between the nodes */
-        neighbour_t *next, *prev; /* linked list entries */
-};
-
-struct item_s {
-        coord_t coord; /* coordinate of the input data point */
-        //char label[MAX_LABEL_LEN]; /* label of the input data point */
-};
 
 float euclidean_distance(const coord_t *a, const coord_t *b)
 {
@@ -174,12 +131,10 @@ neighbour_t *add_neighbour(cluster_t *cluster, int index, int target)
 
 cluster_t *update_neighbours(cluster_t *cluster, int index)
 {
-        //cluster_node_t *node = &(cluster->nodes[index]);
         int root_clusters_seen = 1, target = index;
         while (root_clusters_seen < cluster->num_clusters) {
             cluster_node_t *temp = &(cluster->nodes[--target]);
             if (temp->type == NOT_USED) {
-                invalid_node(index);
                 cluster = NULL;
                 break;
             }
@@ -229,18 +184,17 @@ void print_cluster_items(cluster_t *cluster, int index)
 {
         char buffer[20];
         static int count;
-        sprintf(buffer,"cluster_%d",count);
+        sprintf(buffer,"cluster/cluster_%d",count);
         FILE*fptr=fopen(buffer,"w");
 
         cluster_node_t *node = &(cluster->nodes[index]);
-        fprintf(stdout, "Items: ");
+        fprintf(stdout, "Cluster %d created\n",count+1);
         if (node->num_items > 0) {
                 fprintf(fptr, "%d %d\n", (int)cluster->nodes[node->items[0]].centroid.x,(int)cluster->nodes[node->items[0]].centroid.y);
                 for (int i = 1; i < node->num_items; ++i)
                         fprintf(fptr, "%d %d\n",
                                 (int)cluster->nodes[node->items[i]].centroid.x,(int)cluster->nodes[node->items[i]].centroid.y);
         }
-        fprintf(stdout, "\n");
         fclose(fptr);
         count++;
 }
@@ -275,22 +229,6 @@ void merge_items(cluster_t *cluster,cluster_node_t *node,
         node->height++;
 }
 
-#define merge_to_one(cluster, to_merge, node, node_idx)         \
-        do {                                                    \
-                node->num_items = to_merge[0]->num_items +      \
-                        to_merge[1]->num_items;                 \
-                node->items = alloc_mem(node->num_items, int);  \
-                if (node->items) {                              \
-                        merge_items(cluster, node, to_merge);   \
-                        cluster->num_nodes++;                   \
-                        cluster->num_clusters--;                \
-                        update_neighbours(cluster, node_idx);   \
-                } else {                                        \
-                        alloc_fail("array of merged items");    \
-                        free(node->merged);                     \
-                        node = NULL;                            \
-                }                                               \
-        } while(0)                                              \
 
 cluster_node_t *merge(cluster_t *cluster, int first, int second)
 {
@@ -304,18 +242,25 @@ cluster_node_t *merge(cluster_t *cluster, int first, int second)
         };
         node->merged[0] = first;
         node->merged[1] = second;
-        merge_to_one(cluster, to_merge, node, new_idx);
+
+        //merge_to_one(cluster, to_merge, node, new_idx);
+        node->num_items = to_merge[0]->num_items +
+                to_merge[1]->num_items;
+        node->items = alloc_mem(node->num_items, int);
+        if (node->items) {
+                merge_items(cluster, node, to_merge);
+                cluster->num_nodes++;
+                cluster->num_clusters--;
+                update_neighbours(cluster, new_idx);
+        } else {
+                free(node->merged);
+                node = NULL;
+        }
 
         return node;
 }
 
-#undef merge_to_one
-
-void find_best_distance_neighbour(cluster_node_t *nodes,
-                                  int node_idx,
-                                  neighbour_t *neighbour,
-                                  float *best_distance,
-                                  int *first, int *second)
+void find_best_distance_neighbour(cluster_node_t *nodes,int node_idx,neighbour_t *neighbour,float *best_distance,int *first, int *second)
 {
         while (neighbour) {
                 if (nodes[neighbour->target].is_root) {
@@ -361,27 +306,22 @@ cluster_t *merge_clusters(cluster_t *cluster)
         return cluster;
 }
 
-#define init_cluster(cluster, num_items, items)                         \
-        do {                                                            \
-                cluster->distances =                                    \
-                        generate_distance_matrix(num_items, items);     \
-                cluster->num_items = num_items;                         \
-                cluster->num_nodes = 0;                                 \
-                cluster->num_clusters = 0;                              \
-                if (add_leaves(cluster, items))                         \
-                        merge_clusters(cluster);                        \
-        } while (0)                                                     \
-
 cluster_t *agglomerate(int num_items, item_t *items)
 {
         cluster_t *cluster = alloc_mem(1, cluster_t);
         cluster->nodes = alloc_mem(2 * num_items - 1, cluster_node_t);
-        if (cluster->nodes)
-                init_cluster(cluster, num_items, items);
+        if (cluster->nodes){
+            cluster->distances = generate_distance_matrix(num_items, items);
+            cluster->num_items = num_items;
+            cluster->num_nodes = 0;
+            cluster->num_clusters = 0;
+            if (add_leaves(cluster, items))
+                    merge_clusters(cluster);
+        }
         return cluster;
 }
 
-#undef init_cluster
+
 
 int print_root_children(cluster_t *cluster, int i, int nodes_to_discard)
 {
@@ -465,12 +405,7 @@ int main(int argc, char **argv)
                         free(items);
 
                         if (cluster) {
-                                fprintf(stdout, "CLUSTER HIERARCHY\n"
-                                        "--------------------\n");
-
                                 int k = atoi(argv[2]);
-                                fprintf(stdout, "\n\n%d CLUSTERS\n"
-                                        "--------------------\n", k);
                                 get_k_clusters(cluster, k);
                                 free_cluster(cluster);
                         }
