@@ -5,7 +5,7 @@
 #include "main.h"
 
 #define alloc_mem(N, T) (T *) calloc(N, sizeof(T))
-
+float (*distance_fptr)(float **, const int *, const int *, int, int);
 float euclidean_distance(const coord_t *a, const coord_t *b)
 {
         return sqrt(pow(a->x - b->x, 2) + pow(a->y - b->y, 2));
@@ -15,7 +15,7 @@ void fill_euclidean_distances(float **matrix, int num_items,
                               const item_t items[])
 {
         for (int i = 0; i < num_items; ++i)
-                for (int j = 0; j < num_items; ++j) {
+                for (int j = i; j < num_items; ++j) {
                         matrix[i][j] =
                                 euclidean_distance(&(items[i].coord),
                                                    &(items[j].coord));
@@ -34,6 +34,37 @@ float **generate_distance_matrix(int num_items, const item_t items[])
         return matrix;
 }
 
+float single_linkage(float **distances, const int a[],
+                     const int b[], int m, int n)
+{
+        float min = FLT_MAX, d;
+        for (int i = 0; i < m; ++i)
+                for (int j = 0; j < n; ++j) {
+                        d = distances[a[i]][b[j]];
+                        if (d < min)
+                                min = d;
+                }
+        return min;
+}
+
+float complete_linkage(float **distances, const int a[],
+                       const int b[], int m, int n)
+{
+        float d, max = 0.0 /* assuming distances are positive */;
+        for (int i = 0; i < m; ++i)
+                for (int j = 0; j < n; ++j) {
+                        d = distances[a[i]][b[j]];
+                        if (d > max)
+                                max = d;
+                }
+        return max;
+}
+float centroid_linkage(float **distances, const int a[],
+                       const int b[], int m, int n)
+{
+        return 0; /* empty function */
+}
+
 float get_distance(cluster_t *cluster, int index, int target)
 {
         /* if both are leaves, just use the distances matrix */
@@ -42,7 +73,12 @@ float get_distance(cluster_t *cluster, int index, int target)
         else {
                 cluster_node_t *a = &(cluster->nodes[index]);
                 cluster_node_t *b = &(cluster->nodes[target]);
-                return euclidean_distance(&(a->centroid), &(b->centroid));
+                if (distance_fptr == centroid_linkage)
+                        return euclidean_distance(&(a->centroid),
+                                                  &(b->centroid));
+                else return distance_fptr(cluster->distances,
+                                          a->items, b->items,
+                                          a->num_items, b->num_items);
         }
 }
 
@@ -87,13 +123,13 @@ void free_cluster(cluster_t * cluster)
 void insert_before(neighbour_t *current, neighbour_t *neighbours,
                    cluster_node_t *node)
 {
-        neighbours->next = current;
-        if (current->prev) {
-                current->prev->next = neighbours;
-                neighbours->prev = current->prev;
-        } else
-                node->neighbours = neighbours;
-        current->prev = neighbours;
+    neighbours->next = current;
+    if (current->prev) {
+        current->prev->next = neighbours;
+        neighbours->prev = current->prev;
+    } else
+        node->neighbours = neighbours;
+    current->prev = neighbours;
 }
 
 void insert_after(neighbour_t *current, neighbour_t *neighbours)
@@ -382,6 +418,20 @@ int read_items_from_file(item_t **items, FILE *f)
         return count;
 }
 
+void set_linkage(char linkage_type)
+{
+        switch (linkage_type) {
+        case 'c': //complete linkage
+                distance_fptr = complete_linkage;
+                break;
+        case 't': //centroid linkage
+                distance_fptr = centroid_linkage;
+                break;
+        case 's': //single linkage
+        default: distance_fptr = single_linkage;
+        }
+}
+
 int process_input(item_t **items, const char *fname)
 {
         int count = 0;
@@ -398,11 +448,12 @@ int process_input(item_t **items, const char *fname)
 
 int main(int argc, char **argv)
 {
-        if (argc != 3) {
-                fprintf(stderr, "Usage: %s <input file> <num clusters>\n", argv[0]);
+        if (argc != 4) {
+                fprintf(stderr, "Usage: %s <input file> <num clusters> <linkage type>\n", argv[0]);
                 exit(1);
         } else {
                 item_t *items = NULL;
+                set_linkage(argv[3][0]);
                 int num_items = process_input(&items, argv[1]);
                 if (num_items) {
                         cluster_t *cluster = agglomerate(num_items, items);
