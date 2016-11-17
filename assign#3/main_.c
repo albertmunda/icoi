@@ -23,6 +23,8 @@ void fill_euclidean_distances(float **matrix, int num_items,
                 }
 }
 
+
+//allocated the matrix and stored the euclidean distances
 float **generate_distance_matrix(int num_items, const item_t items[])
 {
         float **matrix = alloc_mem(num_items, float *);
