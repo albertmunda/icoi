@@ -7,5 +7,8 @@ theta = 2 * np.pi * np.random.rand(num)
 
 for i in range(num):
     X=np.loadtxt("cluster/cluster_"+str(i),dtype=np.int)
-    plt.plot(X[:,0],X[:,1],'o')
+    if len(X.shape) == 1:
+        plt.plot(X[0],X[1],'o')
+    else:
+        plt.plot(X[:,0],X[:,1],'o')
 plt.show()
